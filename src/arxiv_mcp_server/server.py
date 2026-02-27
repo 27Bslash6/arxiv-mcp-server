@@ -6,17 +6,26 @@ This module implements an MCP server for interacting with arXiv.
 """
 
 import logging
+from typing import Any
+
 import mcp.types as types
-from typing import Dict, Any, List
-from mcp.server import Server
+from mcp.server import NotificationOptions, Server
 from mcp.server.models import InitializationOptions
-from mcp.server import NotificationOptions
 from mcp.server.stdio import stdio_server
+
 from .config import Settings
-from .tools import handle_search, handle_download, handle_list_papers, handle_read_paper
-from .tools import search_tool, download_tool, list_tool, read_tool
-from .prompts.handlers import list_prompts as handler_list_prompts
 from .prompts.handlers import get_prompt as handler_get_prompt
+from .prompts.handlers import list_prompts as handler_list_prompts
+from .tools import (
+    download_tool,
+    handle_download,
+    handle_list_papers,
+    handle_read_paper,
+    handle_search,
+    list_tool,
+    read_tool,
+    search_tool,
+)
 
 settings = Settings()
 logger = logging.getLogger("arxiv-mcp-server")
@@ -25,27 +34,25 @@ server = Server(settings.APP_NAME)
 
 
 @server.list_prompts()
-async def list_prompts() -> List[types.Prompt]:
+async def list_prompts() -> list[types.Prompt]:
     """List available prompts."""
     return await handler_list_prompts()
 
 
 @server.get_prompt()
-async def get_prompt(
-    name: str, arguments: Dict[str, str] | None = None
-) -> types.GetPromptResult:
+async def get_prompt(name: str, arguments: dict[str, str] | None = None) -> types.GetPromptResult:
     """Get a specific prompt with arguments."""
     return await handler_get_prompt(name, arguments)
 
 
 @server.list_tools()
-async def list_tools() -> List[types.Tool]:
+async def list_tools() -> list[types.Tool]:
     """List available arXiv research tools."""
     return [search_tool, download_tool, list_tool, read_tool]
 
 
 @server.call_tool()
-async def call_tool(name: str, arguments: Dict[str, Any]) -> List[types.TextContent]:
+async def call_tool(name: str, arguments: dict[str, Any]) -> list[types.TextContent]:
     """Handle tool calls for arXiv research functionality."""
     logger.debug(f"Calling tool {name} with arguments {arguments}")
     try:

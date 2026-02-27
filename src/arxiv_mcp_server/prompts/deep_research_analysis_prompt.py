@@ -78,7 +78,7 @@ AVAILABLE TOOLS:
   * Summarize key results in tables for easy reference
 </keep-in-mind>
 </workflow-for-paper-analysis>
-Structure your analysis with clear headings, maintain technical accuracy while being accessible, and include your critical assessment where appropriate. 
-Your analysis should be comprehensive but concise. Be sure to critically evaluate the statistical significance and 
+Structure your analysis with clear headings, maintain technical accuracy while being accessible, and include your critical assessment where appropriate.
+Your analysis should be comprehensive but concise. Be sure to critically evaluate the statistical significance and
 reproducibility of any reported results.
 """

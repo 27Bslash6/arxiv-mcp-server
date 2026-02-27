@@ -1,9 +1,10 @@
 """Configuration settings for the arXiv MCP server."""
 
-import sys
-from pydantic_settings import BaseSettings, SettingsConfigDict
-from pathlib import Path
 import logging
+import sys
+from pathlib import Path
+
+from pydantic_settings import BaseSettings, SettingsConfigDict
 
 logger = logging.getLogger(__name__)
 
@@ -27,10 +28,7 @@ class Settings(BaseSettings):
         Returns:
             Path: The absolute storage path.
         """
-        path = (
-            self._get_storage_path_from_args()
-            or Path.home() / ".arxiv-mcp-server" / "papers"
-        )
+        path = self._get_storage_path_from_args() or Path.home() / ".arxiv-mcp-server" / "papers"
         path = path.resolve()
         path.mkdir(parents=True, exist_ok=True)
         return path
@@ -80,5 +78,6 @@ def get_arxiv_client():
     global _arxiv_client
     if _arxiv_client is None:
         import arxiv
+
         _arxiv_client = arxiv.Client()
     return _arxiv_client

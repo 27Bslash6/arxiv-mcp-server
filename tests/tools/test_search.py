@@ -1,13 +1,15 @@
 """Tests for paper search functionality."""
 
-import pytest
 import json
-from unittest.mock import patch, MagicMock, AsyncMock
+from unittest.mock import AsyncMock, MagicMock, patch
+
+import pytest
+
 from arxiv_mcp_server.tools import handle_search
 from arxiv_mcp_server.tools.search import (
-    _validate_categories,
-    _raw_arxiv_search,
     _parse_arxiv_atom_response,
+    _raw_arxiv_search,
+    _validate_categories,
 )
 
 
@@ -30,9 +32,7 @@ async def test_basic_search(mock_client):
 async def test_search_with_categories(mock_client):
     """Test paper search with category filtering."""
     with patch("arxiv_mcp_server.tools.search.get_arxiv_client", return_value=mock_client):
-        result = await handle_search(
-            {"query": "test query", "categories": ["cs.AI", "cs.LG"], "max_results": 1}
-        )
+        result = await handle_search({"query": "test query", "categories": ["cs.AI", "cs.LG"], "max_results": 1})
 
         content = json.loads(result[0].text)
         assert content["papers"][0]["categories"] == ["cs.AI", "cs.LG"]
@@ -82,9 +82,7 @@ async def test_search_with_dates():
 @pytest.mark.asyncio
 async def test_search_with_invalid_dates():
     """Test search with invalid date formats."""
-    result = await handle_search(
-        {"query": "test query", "date_from": "invalid-date", "max_results": 1}
-    )
+    result = await handle_search({"query": "test query", "date_from": "invalid-date", "max_results": 1})
 
     assert "Error:" in result[0].text
 
@@ -132,7 +130,6 @@ def test_parse_arxiv_atom_response():
 @pytest.mark.asyncio
 async def test_raw_arxiv_search_builds_correct_url():
     """Test that raw search builds correct URL with date filters."""
-    import httpx
 
     # Mock the httpx client
     mock_response = MagicMock()
@@ -184,9 +181,7 @@ async def test_search_with_invalid_categories(mock_client):
 async def test_search_empty_query(mock_client):
     """Test search with empty query but categories."""
     with patch("arxiv_mcp_server.tools.search.get_arxiv_client", return_value=mock_client):
-        result = await handle_search(
-            {"query": "", "categories": ["cs.AI"], "max_results": 1}
-        )
+        result = await handle_search({"query": "", "categories": ["cs.AI"], "max_results": 1})
 
         # Should still work with just categories
         content = json.loads(result[0].text)

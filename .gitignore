@@ -19,10 +19,19 @@ wheels/
 *.egg-info/
 .installed.cfg
 *.egg
+
+# Test / coverage
 *.coverage
-*.DS_Store
+.coverage.*
+htmlcov/
+.pytest_cache/
+
+# Tools
+.ruff_cache/
+.mypy_cache/
 
 # Virtual Environment
+.venv/
 venv/
 env/
 ENV/
@@ -33,8 +42,13 @@ ENV/
 *.swp
 *.swo
 
+# OS
+*.DS_Store
+Thumbs.db
+
 # Logs
 *.log
 
 # Local development settings
 .env
+.env.*
