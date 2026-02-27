@@ -70,3 +70,15 @@ class Settings(BaseSettings):
             logger.warning(f"Invalid storage path: {e}")
 
         return None
+
+
+_arxiv_client = None
+
+
+def get_arxiv_client():
+    """Return a shared arxiv.Client() singleton, created on first use."""
+    global _arxiv_client
+    if _arxiv_client is None:
+        import arxiv
+        _arxiv_client = arxiv.Client()
+    return _arxiv_client

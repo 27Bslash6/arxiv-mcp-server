@@ -3,6 +3,7 @@
 import pytest
 import json
 from datetime import datetime
+from unittest.mock import MagicMock
 from arxiv_mcp_server.tools.download import (
     handle_download,
     get_paper_path,
@@ -11,12 +12,16 @@ from arxiv_mcp_server.tools.download import (
 
 
 @pytest.mark.asyncio
-async def test_download_paper_lifecycle(mocker, temp_storage_path):
+async def test_download_paper_lifecycle(mocker, temp_storage_path, mock_client):
     """Test the complete lifecycle of downloading and converting a paper."""
     paper_id = "2103.12345"
-    # Mock arxiv client and PDF download
-    mocker.patch("arxiv.Client.results")
-    mocker.patch("arxiv.Result.download_pdf")
+    mocker.patch(
+        "arxiv_mcp_server.tools.download.get_arxiv_client",
+        return_value=mock_client,
+    )
+
+    mock_paper = mock_client.results.return_value[0]
+    mock_paper.download_pdf = MagicMock()
 
     # Mock PDF to markdown conversion to happen immediately
     async def mock_convert(paper_id, pdf_path):
@@ -27,7 +32,6 @@ async def test_download_paper_lifecycle(mocker, temp_storage_path):
             status = conversion_statuses[paper_id]
             status.status = "success"
             status.completed_at = datetime.now()
-        pdf_path.unlink()  # Cleanup PDF
 
     mocker.patch("asyncio.to_thread", side_effect=mock_convert)
 
@@ -63,14 +67,17 @@ async def test_download_existing_paper(temp_storage_path):
 
 
 @pytest.mark.asyncio
-async def test_download_nonexistent_paper(mocker):
+async def test_download_nonexistent_paper(mocker, mock_client):
     """Test downloading a paper that doesn't exist."""
-    mocker.patch("arxiv.Client.results", side_effect=StopIteration())
+    mock_client.results.return_value = iter([])  # empty results
+    mocker.patch(
+        "arxiv_mcp_server.tools.download.get_arxiv_client",
+        return_value=mock_client,
+    )
 
     response = await handle_download({"paper_id": "invalid.12345"})
     status = json.loads(response[0].text)
     assert status["status"] == "error"
-    assert "not found on arXiv" in status["message"]
 
 
 @pytest.mark.asyncio

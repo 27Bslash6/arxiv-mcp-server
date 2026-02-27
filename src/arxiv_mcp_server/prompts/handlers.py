@@ -7,6 +7,9 @@ from .deep_research_analysis_prompt import PAPER_ANALYSIS_PROMPT
 
 
 # Legacy global research context - used as fallback when no session_id is provided
+_MAX_CONTEXT_ENTRIES = 50
+
+
 class ResearchContext:
     """Maintains context throughout a research session."""
 
@@ -20,7 +23,14 @@ class ResearchContext:
         if "expertise_level" in args:
             self.expertise_level = args["expertise_level"]
         if "paper_id" in args and args["paper_id"] not in self.explored_papers:
+            self._evict_oldest(self.explored_papers)
             self.explored_papers[args["paper_id"]] = {"id": args["paper_id"]}
+
+    @staticmethod
+    def _evict_oldest(d: dict) -> None:
+        """Drop oldest entries to stay within cap."""
+        while len(d) >= _MAX_CONTEXT_ENTRIES:
+            d.pop(next(iter(d)))
 
 
 # Global research context for backward compatibility
@@ -89,6 +99,7 @@ async def get_prompt(
             previous_papers_context = f"\nI've previously analyzed papers: {', '.join(previous_ids)}. If relevant, note connections to these works."
 
     # Track this analysis in context (for global context only)
+    ResearchContext._evict_oldest(_research_context.paper_analyses)
     _research_context.paper_analyses[paper_id] = {"analysis": "complete"}
 
     return GetPromptResult(

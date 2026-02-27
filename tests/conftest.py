@@ -6,6 +6,15 @@ from datetime import datetime, timezone
 from unittest.mock import MagicMock, AsyncMock
 import arxiv
 from pathlib import Path
+import arxiv_mcp_server.config as config_module
+
+
+@pytest.fixture(autouse=True)
+def reset_arxiv_client():
+    """Reset the shared arxiv client singleton between tests."""
+    config_module._arxiv_client = None
+    yield
+    config_module._arxiv_client = None
 
 
 class MockAuthor:
