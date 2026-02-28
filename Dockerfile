@@ -17,6 +17,11 @@ RUN --mount=type=cache,target=/root/.cache/uv \
 
 FROM python:3.11-slim-bookworm
 
+RUN apt-get update && apt-get install -y --no-install-recommends nodejs npm \
+    && npm install -g supergateway \
+    && apt-get remove -y npm && apt-get autoremove -y \
+    && rm -rf /var/lib/apt/lists/*
+
 WORKDIR /app
 
 COPY --from=uv /app/.venv /app/.venv
@@ -24,4 +29,5 @@ COPY --from=uv /app/.venv /app/.venv
 ENV PATH="/app/.venv/bin:$PATH"
 ENV MALLOC_ARENA_MAX=2
 
-ENTRYPOINT ["python", "-m", "arxiv_mcp_server"]
+ENTRYPOINT ["supergateway"]
+CMD ["--stdio", "python -m arxiv_mcp_server", "--outputTransport", "streamableHttp", "--port", "8000"]
