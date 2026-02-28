@@ -17,10 +17,16 @@ RUN --mount=type=cache,target=/root/.cache/uv \
 
 FROM python:3.11-slim-bookworm
 
-RUN apt-get update && apt-get install -y --no-install-recommends nodejs npm \
+RUN apt-get update && apt-get install -y --no-install-recommends nodejs npm curl \
     && npm install -g supergateway \
     && apt-get remove -y npm && apt-get autoremove -y \
     && rm -rf /var/lib/apt/lists/*
+
+# Install unpdf Rust binary for PDF-to-Markdown conversion
+ARG UNPDF_VERSION=v0.2.1
+RUN curl -sL https://github.com/iyulab/unpdf/releases/download/${UNPDF_VERSION}/unpdf-linux-x86_64-v${UNPDF_VERSION#v}.tar.gz \
+    | tar xz -C /usr/local/bin/ \
+    && chmod +x /usr/local/bin/unpdf
 
 WORKDIR /app
 
