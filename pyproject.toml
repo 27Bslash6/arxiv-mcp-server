@@ -25,6 +25,7 @@ dependencies = [
     "uvicorn>=0.30.0",
     "sse-starlette>=1.8.2",
     "anyio>=4.2.0",
+    "markdownify>=0.14.0",
 ]
 
 [project.optional-dependencies]
@@ -42,7 +43,7 @@ dev = [
 
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
-asyncio_fixture_loop_scope = "function"
+asyncio_default_fixture_loop_scope = "function"
 testpaths = ["tests"]
 addopts = "-v --cov=arxiv_mcp_server"
 
