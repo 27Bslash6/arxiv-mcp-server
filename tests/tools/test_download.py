@@ -14,7 +14,7 @@ from arxiv_mcp_server.tools.download import (
 
 
 @pytest.mark.asyncio
-async def test_download_paper_lifecycle(mocker, temp_storage_path, mock_client):
+async def test_download_paper_lifecycle(mocker, temp_storage_path, mock_client, mock_paper):
     """Test the complete lifecycle of downloading and converting a paper."""
     paper_id = "2103.12345"
     mocker.patch(
@@ -22,7 +22,6 @@ async def test_download_paper_lifecycle(mocker, temp_storage_path, mock_client):
         return_value=mock_client,
     )
 
-    mock_paper = mock_client.results.return_value[0]
     mock_paper.download_pdf = MagicMock()
 
     # Mock PDF to markdown conversion to happen immediately
@@ -71,7 +70,7 @@ async def test_download_existing_paper(temp_storage_path):
 @pytest.mark.asyncio
 async def test_download_nonexistent_paper(mocker, mock_client):
     """Test downloading a paper that doesn't exist."""
-    mock_client.results.return_value = iter([])  # empty results
+    mock_client.results.side_effect = lambda *args, **kwargs: iter([])
     mocker.patch(
         "arxiv_mcp_server.tools.download.get_arxiv_client",
         return_value=mock_client,

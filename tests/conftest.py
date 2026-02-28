@@ -51,7 +51,7 @@ def mock_paper():
 def mock_client(mock_paper):
     """Create a mock arxiv client with predefined behavior."""
     client = MagicMock(spec=arxiv.Client)
-    client.results.return_value = [mock_paper]
+    client.results.side_effect = lambda *args, **kwargs: iter([mock_paper])
     return client
 
 
