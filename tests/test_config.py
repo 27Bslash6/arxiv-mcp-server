@@ -3,8 +3,9 @@
 import os
 import sys
 from pathlib import Path
-from arxiv_mcp_server.config import Settings
 from unittest.mock import patch
+
+from arxiv_mcp_server.config import Settings
 
 
 @patch.object(Path, "mkdir")
@@ -16,7 +17,7 @@ def test_storage_path_default(mock_resolve, mock_mkdir):
 
     settings = Settings()
     expected_path = Path.home() / ".arxiv-mcp-server" / "papers"
-    assert settings.STORAGE_PATH == expected_path.resolve()
+    assert expected_path.resolve() == settings.STORAGE_PATH
     # Verify mkdir was called with parents=True and exist_ok=True
     mock_mkdir.assert_called_once_with(parents=True, exist_ok=True)
 
@@ -30,7 +31,7 @@ def test_storage_path_from_args(mock_resolve, mock_mkdir):
 
     with patch.object(sys, "argv", ["program", "--storage-path", test_path]):
         settings = Settings()
-        assert settings.STORAGE_PATH == Path(test_path).resolve()
+        assert Path(test_path).resolve() == settings.STORAGE_PATH
     mock_mkdir.assert_called_once_with(parents=True, exist_ok=True)
 
 
@@ -56,7 +57,7 @@ def test_storage_path_platform_compatibility(mock_resolve, mock_mkdir):
         mock_mkdir.reset_mock()
 
         # Set up the mock to return the path itself
-        mock_resolve.side_effect = lambda: Path(test_path)
+        mock_resolve.side_effect = lambda tp=test_path: Path(tp)
 
         with patch.object(sys, "argv", ["program", "--storage-path", test_path]):
             settings = Settings()

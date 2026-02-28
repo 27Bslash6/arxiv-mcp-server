@@ -26,7 +26,6 @@ dependencies = [
     "uvicorn>=0.30.0",
     "sse-starlette>=1.8.2",
     "anyio>=4.2.0",
-    "black>=25.1.0",
     "pymupdf-layout>=1.26.6",
 ]
 
@@ -39,12 +38,13 @@ test = [
     "aioresponses>=0.7.6"
 ]
 dev = [
-    "black>=23.3.0"
+    "ruff>=0.9.0",
+    "pre-commit>=4.0.0",
 ]
 
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
-asyncio_fixture_loop_scope = "function"  # Added this line
+asyncio_fixture_loop_scope = "function"
 testpaths = ["tests"]
 addopts = "-v --cov=arxiv_mcp_server"
 
@@ -57,20 +57,13 @@ packages = ["src/arxiv_mcp_server"]
 [tool.hatch.metadata]
 allow-direct-references = true
 
-[tool.black]
-line-length = 88
-target-version = ["py311"]
-include = '\.pyi?$'
-exclude = '''
-/(
-    \.git
-  | \.hg
-  | \.mypy_cache
-  | \.tox
-  | \.venv
-  | _build
-  | buck-out
-  | build
-  | dist
-)/
-'''
+[tool.ruff]
+target-version = "py311"
+line-length = 129
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "UP", "B", "SIM"]
+ignore = ["E501", "SIM108"]
+
+[tool.ruff.format]
+quote-style = "double"

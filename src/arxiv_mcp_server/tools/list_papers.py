@@ -2,10 +2,12 @@
 
 import json
 from pathlib import Path
+from typing import Any
+
 import arxiv
-from typing import Dict, Any, List, Optional
 import mcp.types as types
-from ..config import Settings
+
+from ..config import Settings, get_arxiv_client
 
 settings = Settings()
 
@@ -26,13 +28,13 @@ def list_papers() -> list[str]:
 
 
 async def handle_list_papers(
-    arguments: Optional[Dict[str, Any]] = None,
-) -> List[types.TextContent]:
+    arguments: dict[str, Any] | None = None,
+) -> list[types.TextContent]:
     """Handle requests to list all stored papers."""
     try:
         papers = list_papers()
 
-        client = arxiv.Client()
+        client = get_arxiv_client()
 
         results = client.results(arxiv.Search(id_list=papers))
 
@@ -50,9 +52,7 @@ async def handle_list_papers(
             ],
         }
 
-        return [
-            types.TextContent(type="text", text=json.dumps(response_data, indent=2))
-        ]
+        return [types.TextContent(type="text", text=json.dumps(response_data, indent=2))]
 
     except Exception as e:
         return [types.TextContent(type="text", text=f"Error: {str(e)}")]

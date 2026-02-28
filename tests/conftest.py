@@ -1,11 +1,22 @@
 """Shared test fixtures for the arXiv MCP server test suite."""
 
-import pytest
 import tempfile
-from datetime import datetime, timezone
-from unittest.mock import MagicMock, AsyncMock
-import arxiv
+from datetime import UTC, datetime
 from pathlib import Path
+from unittest.mock import AsyncMock, MagicMock
+
+import arxiv
+import pytest
+
+import arxiv_mcp_server.config as config_module
+
+
+@pytest.fixture(autouse=True)
+def reset_arxiv_client():
+    """Reset the shared arxiv client singleton between tests."""
+    config_module._arxiv_client = None
+    yield
+    config_module._arxiv_client = None
 
 
 class MockAuthor:
@@ -27,7 +38,7 @@ def mock_paper():
     paper.authors = [MockAuthor("John Doe"), MockAuthor("Jane Smith")]
     paper.summary = "Test abstract"
     paper.categories = ["cs.AI", "cs.LG"]
-    paper.published = datetime(2023, 1, 1, tzinfo=timezone.utc)
+    paper.published = datetime(2023, 1, 1, tzinfo=UTC)
     paper.pdf_url = "https://arxiv.org/pdf/2103.12345"
     paper.comment = "Test comment"
     paper.journal_ref = "Test Journal 2023"
@@ -40,7 +51,7 @@ def mock_paper():
 def mock_client(mock_paper):
     """Create a mock arxiv client with predefined behavior."""
     client = MagicMock(spec=arxiv.Client)
-    client.results.return_value = [mock_paper]
+    client.results.side_effect = lambda *args, **kwargs: iter([mock_paper])
     return client
 
 

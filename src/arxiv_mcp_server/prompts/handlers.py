@@ -1,12 +1,14 @@
 """Handlers for prompt-related requests with paper analysis functionality."""
 
-from typing import List, Dict, Optional
-from mcp.types import Prompt, PromptMessage, TextContent, GetPromptResult
-from .prompts import PROMPTS
-from .deep_research_analysis_prompt import PAPER_ANALYSIS_PROMPT
+from mcp.types import GetPromptResult, Prompt, PromptMessage, TextContent
 
+from .deep_research_analysis_prompt import PAPER_ANALYSIS_PROMPT
+from .prompts import PROMPTS
 
 # Legacy global research context - used as fallback when no session_id is provided
+_MAX_CONTEXT_ENTRIES = 50
+
+
 class ResearchContext:
     """Maintains context throughout a research session."""
 
@@ -15,12 +17,19 @@ class ResearchContext:
         self.explored_papers = {}  # paper_id -> basic metadata
         self.paper_analyses = {}  # paper_id -> analysis focus and summary
 
-    def update_from_arguments(self, args: Dict[str, str]) -> None:
+    def update_from_arguments(self, args: dict[str, str]) -> None:
         """Update context based on new arguments."""
         if "expertise_level" in args:
             self.expertise_level = args["expertise_level"]
         if "paper_id" in args and args["paper_id"] not in self.explored_papers:
+            self._evict_oldest(self.explored_papers)
             self.explored_papers[args["paper_id"]] = {"id": args["paper_id"]}
+
+    @staticmethod
+    def _evict_oldest(d: dict) -> None:
+        """Drop oldest entries to stay within cap."""
+        while len(d) >= _MAX_CONTEXT_ENTRIES:
+            d.pop(next(iter(d)))
 
 
 # Global research context for backward compatibility
@@ -37,15 +46,13 @@ Present your analysis with the following structure:
 """
 
 
-async def list_prompts() -> List[Prompt]:
+async def list_prompts() -> list[Prompt]:
     """Handle prompts/list request."""
     # Filter to only include deep-paper-analysis
     return [PROMPTS["deep-paper-analysis"]] if "deep-paper-analysis" in PROMPTS else []
 
 
-async def get_prompt(
-    name: str, arguments: Dict[str, str] | None = None, session_id: Optional[str] = None
-) -> GetPromptResult:
+async def get_prompt(name: str, arguments: dict[str, str] | None = None, session_id: str | None = None) -> GetPromptResult:
     """Handle prompts/get request for paper analysis.
 
     Args:
@@ -82,13 +89,14 @@ async def get_prompt(
 
     # Use global context
     if len(_research_context.explored_papers) > 1:
-        previous_ids = [
-            pid for pid in _research_context.explored_papers.keys() if pid != paper_id
-        ]
+        previous_ids = [pid for pid in _research_context.explored_papers if pid != paper_id]
         if previous_ids:
-            previous_papers_context = f"\nI've previously analyzed papers: {', '.join(previous_ids)}. If relevant, note connections to these works."
+            previous_papers_context = (
+                f"\nI've previously analyzed papers: {', '.join(previous_ids)}. If relevant, note connections to these works."
+            )
 
     # Track this analysis in context (for global context only)
+    ResearchContext._evict_oldest(_research_context.paper_analyses)
     _research_context.paper_analyses[paper_id] = {"analysis": "complete"}
 
     return GetPromptResult(

@@ -11,9 +11,7 @@ PROMPTS = {
         name="research-discovery",
         description="Begin research exploration on a specific topic",
         arguments=[
-            PromptArgument(
-                name="topic", description="Research topic or question", required=True
-            ),
+            PromptArgument(name="topic", description="Research topic or question", required=True),
             PromptArgument(
                 name="expertise_level",
                 description="User's familiarity (beginner/intermediate/expert)",
@@ -35,9 +33,7 @@ PROMPTS = {
         name="deep-paper-analysis",
         description="Analyze a specific paper in detail",
         arguments=[
-            PromptArgument(
-                name="paper_id", description="arXiv paper ID", required=True
-            ),
+            PromptArgument(name="paper_id", description="arXiv paper ID", required=True),
         ],
     ),
     "literature-synthesis": Prompt(
@@ -70,9 +66,7 @@ PROMPTS = {
                 description="Comma-separated list of arXiv paper IDs",
                 required=True,
             ),
-            PromptArgument(
-                name="topic", description="Research topic or question", required=True
-            ),
+            PromptArgument(name="topic", description="Research topic or question", required=True),
             PromptArgument(
                 name="domain",
                 description="Academic domain (e.g., computer_science/physics/biology)",

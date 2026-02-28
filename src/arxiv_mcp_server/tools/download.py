@@ -1,26 +1,23 @@
 """Download functionality for the arXiv MCP server."""
 
-import arxiv
-import json
 import asyncio
-from pathlib import Path
-from typing import Dict, Any, List, Optional
+import gc
+import json
+import logging
 from dataclasses import dataclass
 from datetime import datetime
+from pathlib import Path
+from typing import Any
+
 import mcp.types as types
-from ..config import Settings
-import pymupdf4llm
-import fitz
-import logging
+
+from ..config import Settings, get_arxiv_client
 
 logger = logging.getLogger("arxiv-mcp-server")
 settings = Settings()
 
 # Global dictionary to track conversion status
-conversion_statuses: Dict[str, Any] = {}
-
-fitz.TOOLS.mupdf_display_errors(False)
-fitz.TOOLS.mupdf_display_warnings(False)
+conversion_statuses: dict[str, Any] = {}
 
 
 @dataclass
@@ -30,8 +27,8 @@ class ConversionStatus:
     paper_id: str
     status: str  # 'downloading', 'converting', 'success', 'error'
     started_at: datetime
-    completed_at: Optional[datetime] = None
-    error: Optional[str] = None
+    completed_at: datetime | None = None
+    error: str | None = None
 
 
 download_tool = types.Tool(
@@ -65,6 +62,12 @@ def get_paper_path(paper_id: str, suffix: str = ".md") -> Path:
 def convert_pdf_to_markdown(paper_id: str, pdf_path: Path) -> None:
     """Convert PDF to Markdown in a separate thread."""
     try:
+        import fitz
+        import pymupdf4llm
+
+        fitz.TOOLS.mupdf_display_errors(False)
+        fitz.TOOLS.mupdf_display_warnings(False)
+
         logger.info(f"Starting conversion for {paper_id}")
         markdown = pymupdf4llm.to_markdown(pdf_path, show_progress=False)
         md_path = get_paper_path(paper_id, ".md")
@@ -77,7 +80,7 @@ def convert_pdf_to_markdown(paper_id: str, pdf_path: Path) -> None:
             status.status = "success"
             status.completed_at = datetime.now()
 
-        # Clean up PDF after successful conversion
+        pdf_path.unlink(missing_ok=True)
         logger.info(f"Conversion completed for {paper_id}")
 
     except Exception as e:
@@ -87,9 +90,12 @@ def convert_pdf_to_markdown(paper_id: str, pdf_path: Path) -> None:
             status.status = "error"
             status.completed_at = datetime.now()
             status.error = str(e)
+    finally:
+        conversion_statuses.pop(paper_id, None)
+        gc.collect()
 
 
-async def handle_download(arguments: Dict[str, Any]) -> List[types.TextContent]:
+async def handle_download(arguments: dict[str, Any]) -> list[types.TextContent]:
     """Handle paper download and conversion requests."""
     try:
         paper_id = arguments["paper_id"]
@@ -131,11 +137,7 @@ async def handle_download(arguments: Dict[str, Any]) -> List[types.TextContent]:
                         {
                             "status": status.status,
                             "started_at": status.started_at.isoformat(),
-                            "completed_at": (
-                                status.completed_at.isoformat()
-                                if status.completed_at
-                                else None
-                            ),
+                            "completed_at": (status.completed_at.isoformat() if status.completed_at else None),
                             "error": status.error,
                             "message": f"Paper conversion {status.status}",
                         }
@@ -175,13 +177,13 @@ async def handle_download(arguments: Dict[str, Any]) -> List[types.TextContent]:
             ]
 
         # Start new download and conversion
+        import arxiv
+
         pdf_path = get_paper_path(paper_id, ".pdf")
-        client = arxiv.Client()
+        client = get_arxiv_client()
 
         # Initialize status
-        conversion_statuses[paper_id] = ConversionStatus(
-            paper_id=paper_id, status="downloading", started_at=datetime.now()
-        )
+        conversion_statuses[paper_id] = ConversionStatus(paper_id=paper_id, status="downloading", started_at=datetime.now())
 
         # Download PDF
         paper = next(client.results(arxiv.Search(id_list=[paper_id])))
@@ -192,9 +194,7 @@ async def handle_download(arguments: Dict[str, Any]) -> List[types.TextContent]:
         status.status = "converting"
 
         # Start conversion in thread
-        asyncio.create_task(
-            asyncio.to_thread(convert_pdf_to_markdown, paper_id, pdf_path)
-        )
+        asyncio.create_task(asyncio.to_thread(convert_pdf_to_markdown, paper_id, pdf_path))
 
         return [
             types.TextContent(
