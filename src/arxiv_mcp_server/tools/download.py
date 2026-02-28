@@ -1,9 +1,10 @@
 """Download functionality for the arXiv MCP server."""
 
 import asyncio
-import gc
 import json
 import logging
+import shutil
+import subprocess
 from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
@@ -60,20 +61,27 @@ def get_paper_path(paper_id: str, suffix: str = ".md") -> Path:
 
 
 def convert_pdf_to_markdown(paper_id: str, pdf_path: Path) -> None:
-    """Convert PDF to Markdown in a separate thread."""
+    """Convert PDF to Markdown via the unpdf Rust binary."""
     try:
-        import fitz
-        import pymupdf4llm
+        unpdf = shutil.which("unpdf")
+        if not unpdf:
+            raise FileNotFoundError("unpdf binary not found on PATH")
 
-        fitz.TOOLS.mupdf_display_errors(False)
-        fitz.TOOLS.mupdf_display_warnings(False)
-
-        logger.info(f"Starting conversion for {paper_id}")
-        markdown = pymupdf4llm.to_markdown(pdf_path, show_progress=False)
         md_path = get_paper_path(paper_id, ".md")
+        logger.info(f"Starting conversion for {paper_id}")
 
-        with open(md_path, "w", encoding="utf-8") as f:
-            f.write(markdown)
+        result = subprocess.run(
+            [unpdf, "markdown", "--cleanup", "aggressive", str(pdf_path), "-o", str(md_path)],
+            capture_output=True,
+            text=True,
+            timeout=120,
+        )
+
+        if result.returncode != 0:
+            raise RuntimeError(f"unpdf exited {result.returncode}: {result.stderr.strip()}")
+
+        if not md_path.exists() or md_path.stat().st_size == 0:
+            raise RuntimeError("unpdf produced no output")
 
         status = conversion_statuses.get(paper_id)
         if status:
@@ -92,7 +100,6 @@ def convert_pdf_to_markdown(paper_id: str, pdf_path: Path) -> None:
             status.error = str(e)
     finally:
         conversion_statuses.pop(paper_id, None)
-        gc.collect()
 
 
 async def handle_download(arguments: dict[str, Any]) -> list[types.TextContent]:
